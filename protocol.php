@@ -5,12 +5,14 @@ class Protocol
     protected $logger = null;
     protected $helper = null;
     protected $ipBag  = null;
+    protected $invBag = null;
 
     public function __construct()
     {
         $this->logger = new Logger;
         $this->helper = new Helper;
         $this->ipBag  = new IpBag;
+        $this->invBag = new invBag;
     }
 
     public function generateVersionPackage($remoteIP, $remotePort, $localPort)
@@ -98,6 +100,10 @@ class Protocol
                 $this->processAddr($payload);
                 break;
 
+            case 'inv':
+                $this->processInv($payload);
+                break;
+
             case 'version':
                 $this->checkRemoteVersion($payload, $socket);
                 break;
@@ -169,6 +175,33 @@ class Protocol
         }
 
         $this->logger->log('Invalid addr package');
+
+        return false;
+    }
+
+    protected function processInv($payload)
+    {
+        $offset = 0;
+        $invHash = array();
+        $amount = $this->helper->decodeVarint(substr($payload, 0, 10));
+
+        if (strlen($payload) === intval($amount['len'] + (32 * $amount['int']))) {
+            $payload = substr($payload, $amount['len']);
+
+            while ($offset !== strlen($payload)) {
+                $invHash[] = bin2hex(substr($payload, $offset, 32));
+
+                $offset += 32;
+            }
+
+            if (count($invHash) !== 0) {
+                // $this->invBag->add($invHash);
+            }
+
+            return true;
+        }
+
+        $this->logger->log('Invalid inv package');
 
         return false;
     }
