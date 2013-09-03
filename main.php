@@ -1,6 +1,6 @@
 <?php
 
-$host = "127.0.0.1";
+$host = "95.222.117.227";
 $port = 8444;
 
 $protocol = new Protocol();
@@ -12,7 +12,7 @@ if ($socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP)) {
         socket_send($socket, $data, strlen($data), 0);
 
         while (true) {
-            if (socket_recv($socket, $buffer, 1024, 0)) {
+            if (socket_recv($socket, $buffer, 32, 0)) {
                 if ($protocol->recievePackage($buffer, $socket) === false) {
                     die('Error' . "\r\n");
                 }

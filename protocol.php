@@ -67,9 +67,9 @@ class Protocol
             return false;
         }
 
-        // Big package, download the rest otherwise the hash checksum will be incorrect and the
-        // payload to short to process.
-        if ($size > 1024) {
+        // Download the rest of payload otherwise the hash checksum will be incorrect and the
+        // payload will be to short to process.
+        if ($size > 32) {
             $downloadSize = $size - strlen($data);
 
             while ($downloadSize > 0) {
@@ -79,7 +79,7 @@ class Protocol
                         return false;
                     }
 
-                $downloadSize = $downloadSize - 1024;
+                $downloadSize = $size - strlen($data);
             }
         }
 
