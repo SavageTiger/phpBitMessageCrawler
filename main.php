@@ -1,6 +1,6 @@
 <?php
 
-$host = "95.222.117.227";
+$host = "127.0.0.1";
 $port = 8444;
 
 $protocol = new Protocol();
