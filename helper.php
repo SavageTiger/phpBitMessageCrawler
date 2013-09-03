@@ -12,13 +12,13 @@ class Helper
             if ((int)$int === 253) {
                 $int = unpack('n', substr($input, 1, 2));
 
-                return current($int);
+                return array('len' => 3, 'int' => current($int));
             } else {
                 die('unsupported...'); // XXX
             }
         }
 
-        return $int;
+        return array('len' => 1, 'int' => $int);
     }
 
     public function varInt($input)

@@ -4,11 +4,13 @@ class Protocol
 {
     protected $logger = null;
     protected $helper = null;
+    protected $ipBag  = null;
 
     public function __construct()
     {
         $this->logger = new Logger;
         $this->helper = new Helper;
+        $this->ipBag  = new IpBag;
     }
 
     public function generateVersionPackage($remoteIP, $remotePort, $localPort)
@@ -18,7 +20,7 @@ class Protocol
         $payload = '';
         $payload .= pack('N', 2); // Version
         $payload .= $this->helper->pack_double(1, 64, false); // Bitflags
-        $payload .= $this->helper->pack_double(time(), 64, false); // Bitflags
+        $payload .= $this->helper->pack_double(time(), 64, false); // Timestamp
 
         // Remote IP
         $payload .= $this->helper->pack_double(1, 64, false); // Remote bitflags (what a odd this to send...)
@@ -115,21 +117,60 @@ class Protocol
 
             // Read the remote useragent
             $stringSize = $this->helper->decodeVarInt(substr($payload, 80, 84));
-            $agent = substr($payload, 81, $stringSize);
+            $agent = substr($payload, 80 + $stringSize['len'], $stringSize['int']);
 
             $this->logger->log('Remote version is accepted [agent: ' . $agent . '] [version: ' . $version . '] [destination: ' . $ip . ']');
 
             // Send a verack for good measure
             $data = $this->buildPackage('', 'verack');
             socket_send($socket, $data, strlen($data), 0);
+
+            return true;
         }
+
+        return false;
     }
 
     protected function processAddr($payload)
     {
+        $offset = 0;
+        $new = 0;
         $amount = $this->helper->decodeVarint(substr($payload, 0, 10));
 
-        return;
+        if (strlen($payload) === intval($amount['len'] + (38 * $amount['int']))) {
+            $this->logger->log('Recieved ' . $amount['int'] . ' ip adresses');
+
+            $payload = substr($payload, $amount['len']);
+
+            while ($offset !== (38 * $amount['int'])) {
+                $ipCheck = substr($payload, $offset + 20, 12);
+
+                if (bin2hex($ipCheck) == '00000000000000000000ffff') { // Check if the ip address is IPv4 (IPv6 is unsupported at the moment)
+                    $ip = unpack('N', substr($payload, (20 + 12) + $offset, 4));
+                    $ip = long2ip(current($ip));
+
+                    $port = unpack('n', substr($payload, (20 + 12) + $offset + 4, 2));
+                    $port = current($port);
+
+                    if ($this->ipBag->add($ip, $port)) {
+                        $new++;
+                    }
+                }
+
+                $offset += 38;
+            }
+
+            if ($new > 0) {
+                $this->logger->log('Added ' . $new . ' new ip addresses');
+                $this->ipBag->write();
+            }
+
+            return true;
+        }
+
+        $this->logger->log('Invalid addr package');
+
+        return false;
     }
 
     protected function buildPackage($payload, $type = 'version')
