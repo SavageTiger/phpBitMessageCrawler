@@ -4,6 +4,7 @@ $host = "127.0.0.1";
 $port = 8444;
 
 $protocol = new Protocol();
+$sqlite = new SQLite();
 
 if ($socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP)) {
     if (socket_connect($socket, $host, $port)) {
