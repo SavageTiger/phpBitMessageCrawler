@@ -18,6 +18,13 @@ if ($socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP)) {
                     die('Error' . "\r\n");
                 }
             }
+
+            // Just for testing, sending should get its own thread
+            if ($protocol->isAccepted()) {
+                if ($protocol->sendPackage($socket)) {
+                    // Dum dum duuuuhhmm...
+                }
+            }
         }
     }
 }

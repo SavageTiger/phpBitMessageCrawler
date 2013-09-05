@@ -2,6 +2,8 @@
 
 class Protocol
 {
+    protected $accepted = false;
+
     protected $logger = null;
     protected $helper = null;
     protected $ipBag  = null;
@@ -93,6 +95,7 @@ class Protocol
 
         switch ($type) {
             case 'verack':
+                $this->accepted = true;
                 $this->logger->log('My version is accepted');
                 break;
 
@@ -108,6 +111,19 @@ class Protocol
                 $this->checkRemoteVersion($payload, $socket);
                 break;
         }
+    }
+
+    public function sendPackage($socket)
+    {
+        $hash = $this->invBag->getRandomInventory();
+        $data = $this->buildPackage(pack('C', 1) . $hash, 'getdata');
+
+        socket_send($socket, $data, strlen($data), 0);
+    }
+
+    public function isAccepted()
+    {
+        return $this->accepted;
     }
 
     protected function checkRemoteVersion($payload, $socket)

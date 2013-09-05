@@ -60,6 +60,14 @@ class SQLite
         return $this->connection->exec($query);
     }
 
+    public function getRandomInventory()
+    {
+        $query = 'SELECT Hash FROM Inventory ORDER BY RANDOM() LIMIT 1';
+        $result = $this->connection->querySingle($query);
+
+        return $result;
+    }
+
     protected function initialize()
     {
         @$this->connection->exec('SELECT ID FROM Known_Hosts LIMIT 1');

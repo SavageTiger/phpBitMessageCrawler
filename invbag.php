@@ -9,6 +9,11 @@ class InvBag
         $this->sqlite = $sqlite;
     }
 
+    public function getRandomInventory()
+    {
+        return $this->sqlite->getRandomInventory();
+    }
+
     public function addRange($invCollection)
     {
         $buffer = array();
