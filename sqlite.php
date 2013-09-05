@@ -16,6 +16,50 @@ class SQLite
         }
     }
 
+    public function hasInventory($inventory)
+    {
+        if ($this->connection->querySingle('SELECT ID FROM Inventory WHERE Hash = X\'' . bin2hex($inventory) . '\' LIMIT 1') === NULL) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public function hasIp($ip)
+    {
+        if ($this->connection->querySingle('SELECT ID FROM Known_Hosts WHERE IP = ' . ip2long($ip) . ' LIMIT 1') === NULL) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public function addIpRange($ipCollection)
+    {
+        $query = 'INSERT INTO Known_Hosts (IP, Port, Timestamp) VALUES ';
+
+        foreach ($ipCollection as $address) {
+            $query .= ' (' . ip2long($address['ip']) . ', ' . (int)$address['port'] . ', ' . time() . '),';
+        }
+
+        $query = substr($query, 0, -1);
+
+        return $this->connection->exec($query);
+    }
+
+    public function addInventoryRange($inventoryCollection)
+    {
+        $query = 'INSERT INTO Inventory (Hash, Timestamp) VALUES ';
+
+        foreach ($inventoryCollection as $inventory) {
+            $query .= ' (X\'' . bin2hex($inventory) . '\', ' . time() . '),';
+        }
+
+        $query = substr($query, 0, -1);
+
+        return $this->connection->exec($query);
+    }
+
     protected function initialize()
     {
         @$this->connection->exec('SELECT ID FROM Known_Hosts LIMIT 1');

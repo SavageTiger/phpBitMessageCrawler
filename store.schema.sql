@@ -4,3 +4,9 @@ CREATE TABLE "Known_Hosts" (
     "Port" INTEGER NOT NULL,
     "Timestamp" INTEGER NOT NULL
 );
+
+CREATE TABLE "Inventory" (
+    "ID" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    "Hash" BLOB NOT NULL,
+    "Timestamp" INTEGER NOT NULL
+);

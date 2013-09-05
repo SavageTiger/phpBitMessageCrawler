@@ -3,18 +3,17 @@
 class IpBag
 {
     protected $store = array();
+    protected $sqlite = null;
 
-    function __construct()
+    function __construct($sqlite)
     {
-        if (file_exists(__DIR__ . '/knownhosts.txt')) {
-            $this->load();
-        }
+        $this->sqlite = $sqlite;
     }
 
     public function add($ip, $port)
     {
-        if (isset($this->store[$ip]) === false) {
-            $this->store[$ip] = array('ip' => $ip, 'port' => $port, 'timestamp' => time());
+        if ($this->sqlite->hasIp($ip) === false) {
+            $this->store[] = array('ip' => $ip, 'port' => $port);
 
             return true;
         }
@@ -22,17 +21,11 @@ class IpBag
         return false;
     }
 
-    public function write()
+    public function commit()
     {
-        file_put_contents(__DIR__ . '/knownhosts.txt', serialize($this->store));
+        $this->sqlite->addIpRange($this->store);
+        $this->store = array();
 
         return true;
-    }
-
-    protected function load()
-    {
-        $content = file_get_contents(__DIR__ . '/knownhosts.txt');
-
-        return ($this->store = unserialize($content));
     }
 }

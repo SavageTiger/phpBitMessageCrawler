@@ -7,12 +7,12 @@ class Protocol
     protected $ipBag  = null;
     protected $invBag = null;
 
-    public function __construct()
+    public function __construct($sqlite)
     {
-        $this->logger = new Logger;
-        $this->helper = new Helper;
-        $this->ipBag  = new IpBag;
-        $this->invBag = new invBag;
+        $this->logger = new Logger();
+        $this->helper = new Helper();
+        $this->ipBag  = new IpBag($sqlite);
+        $this->invBag = new invBag($sqlite);
     }
 
     public function generateVersionPackage($remoteIP, $remotePort, $localPort)
@@ -168,7 +168,7 @@ class Protocol
 
             if ($new > 0) {
                 $this->logger->log('Added ' . $new . ' new ip addresses');
-                $this->ipBag->write();
+                $this->ipBag->commit();
             }
 
             return true;
@@ -185,17 +185,23 @@ class Protocol
         $invHash = array();
         $amount = $this->helper->decodeVarint(substr($payload, 0, 10));
 
+        $this->logger->log('Recieved ' . $amount['int'] . ' inventory items');
+
         if (strlen($payload) === intval($amount['len'] + (32 * $amount['int']))) {
             $payload = substr($payload, $amount['len']);
 
             while ($offset !== strlen($payload)) {
-                $invHash[] = bin2hex(substr($payload, $offset, 32));
+                $invHash[] = substr($payload, $offset, 32);
 
                 $offset += 32;
             }
 
             if (count($invHash) !== 0) {
-                // $this->invBag->add($invHash);
+                $new = $this->invBag->addRange($invHash);
+
+                if ($new > 0) {
+                    $this->logger->log('Added ' . count($invHash) . ' inventory items');
+                }
             }
 
             return true;
