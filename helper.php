@@ -2,6 +2,9 @@
 
 class Helper
 {
+    protected $payloadLengthExtra = 14000;
+    protected $payloadProofTrials = 320;
+
     public function decodeVarInt($input)
     {
         // TODO
@@ -27,6 +30,25 @@ class Helper
         return pack('C', $input);
     }
 
+    public function checkPOW($payload)
+    {
+        $nonce = substr($payload, 0, 8);
+        $payload = substr($payload, 8);
+        $hash = hash('sha512', $payload, true);
+
+        $pow = hash('sha512', hash('sha512', $nonce . $hash, true), true);
+        $pow = substr($pow, 0, 8);
+        $pow = $this->unpack_double($pow, false);
+
+        $target = pow(2, 64) / ((strlen($payload) + $this->payloadLengthExtra)  * $this->payloadProofTrials);
+
+        if ($pow <= $target) {
+            return true;
+        }
+
+        return false;
+    }
+
     public function pack_double($in, $pad_to_bits = 64, $little_endian = true)
     {
         $in = decbin($in);
@@ -34,11 +56,30 @@ class Helper
         $out = '';
 
         for ($i = 0, $len = strlen($in); $i < $len; $i += 8) {
-            $out .= chr(bindec(substr($in,$i,8)));
+            $out .= chr(bindec(substr($in, $i, 8)));
         }
 
-        if($little_endian) $out = strrev($out);
+        if($little_endian) {
+            $out = strrev($out);
+        }
 
         return $out;
+    }
+
+	function unpack_double($bytes, $little_endian = true)
+    {
+        if ($little_endian) {
+            $bytes = strrev($bytes);
+        }
+
+        $result = '0';
+
+        while (strlen($bytes)) {
+            $ord = ord(substr($bytes, 0, 1));
+            $result = bcadd(bcmul($result, 256), $ord);
+            $bytes = substr($bytes, 1);
+        }
+
+        return $result;
     }
 }

@@ -9,12 +9,12 @@ class InvBag
         $this->sqlite = $sqlite;
     }
 
-    public function getRandomInventory()
+    public function getRandomInventory($host)
     {
-        return $this->sqlite->getRandomInventory();
+        return $this->sqlite->getRandomInventory($host);
     }
 
-    public function addRange($invCollection)
+    public function addRange($invCollection, $host)
     {
         $buffer = array();
 
@@ -24,14 +24,14 @@ class InvBag
             }
 
             if (count($buffer) > 300) {
-                $this->sqlite->addInventoryRange($buffer);
+                $this->sqlite->addInventoryRange($buffer, $host);
 
                 $buffer = array();
             }
         }
 
         if (count($buffer) > 0) {
-            $this->sqlite->addInventoryRange($buffer);
+            $this->sqlite->addInventoryRange($buffer, $host);
         }
 
         return count($buffer);

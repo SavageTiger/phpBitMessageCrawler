@@ -47,12 +47,12 @@ class SQLite
         return $this->connection->exec($query);
     }
 
-    public function addInventoryRange($inventoryCollection)
+    public function addInventoryRange($inventoryCollection, $host)
     {
-        $query = 'INSERT INTO Inventory (Hash, Timestamp) VALUES ';
+        $query = 'INSERT INTO Inventory (Hash, Host, Timestamp) VALUES ';
 
         foreach ($inventoryCollection as $inventory) {
-            $query .= ' (X\'' . bin2hex($inventory) . '\', ' . time() . '),';
+            $query .= ' (X\'' . bin2hex($inventory) . '\', ' . ip2long($host) . ', ' . time() . '),';
         }
 
         $query = substr($query, 0, -1);
@@ -60,9 +60,9 @@ class SQLite
         return $this->connection->exec($query);
     }
 
-    public function getRandomInventory()
+    public function getRandomInventory($host)
     {
-        $query = 'SELECT Hash FROM Inventory ORDER BY RANDOM() LIMIT 1';
+        $query = 'SELECT Hash FROM Inventory WHERE Host = ' . ip2long($host) . ' AND InStore = 0 ORDER BY RANDOM() LIMIT 1';
         $result = $this->connection->querySingle($query);
 
         return $result;

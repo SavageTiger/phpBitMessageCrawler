@@ -75,7 +75,7 @@ class Protocol
             $downloadSize = $size - strlen($data);
 
             while ($downloadSize > 0) {
-                    if (socket_recv($socket, $buffer, 1024, 0)) {
+                    if (socket_recv($socket['socket'], $buffer, 1024, 0)) {
                         $data .= $buffer;
                     } else {
                         return false;
@@ -104,7 +104,11 @@ class Protocol
                 break;
 
             case 'inv':
-                $this->processInv($payload);
+                $this->processInv($payload, $socket);
+                break;
+
+            case 'pubkey':
+                $this->processKey($payload);
                 break;
 
             case 'version':
@@ -115,10 +119,10 @@ class Protocol
 
     public function sendPackage($socket)
     {
-        $hash = $this->invBag->getRandomInventory();
+        $hash = $this->invBag->getRandomInventory($socket['host']);
         $data = $this->buildPackage(pack('C', 1) . $hash, 'getdata');
 
-        socket_send($socket, $data, strlen($data), 0);
+        socket_send($socket['socket'], $data, strlen($data), 0);
     }
 
     public function isAccepted()
@@ -145,12 +149,19 @@ class Protocol
 
             // Send a verack for good measure
             $data = $this->buildPackage('', 'verack');
-            socket_send($socket, $data, strlen($data), 0);
+            socket_send($socket['socket'], $data, strlen($data), 0);
 
             return true;
         }
 
         return false;
+    }
+
+    protected function processKey($payload)
+    {
+        if ($this->helper->checkPOW($payload)) {
+            // ...
+        }
     }
 
     protected function processAddr($payload)
@@ -195,7 +206,7 @@ class Protocol
         return false;
     }
 
-    protected function processInv($payload)
+    protected function processInv($payload, $socket)
     {
         $offset = 0;
         $invHash = array();
@@ -213,7 +224,7 @@ class Protocol
             }
 
             if (count($invHash) !== 0) {
-                $new = $this->invBag->addRange($invHash);
+                $new = $this->invBag->addRange($invHash, $socket['host']);
 
                 if ($new > 0) {
                     $this->logger->log('Added ' . count($invHash) . ' inventory items');
