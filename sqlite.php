@@ -68,6 +68,22 @@ class SQLite
         return $result;
     }
 
+    public function addKey($hash, $key, $timestamp)
+    {
+        $query = 'SELECT ID FROM Inventory WHERE Hash = X\'' . bin2hex($hash) . '\' LIMIT 1';
+        $result = $this->connection->querySingle($query);
+
+        $query  = 'INSERT INTO KeyStore (Inventory, Binary, Timestamp) VALUES ';
+        $query .= '(\'' . $result . '\', X\'' . bin2hex($key) . '\', ' . $timestamp . ')';
+
+        return $this->connection->exec($query);
+    }
+
+    public function markInventory($hash)
+    {
+        return $this->connection->exec('UPDATE Inventory SET InStore = 1 WHERE Hash = X\'' . bin2hex($hash) . '\'');
+    }
+
     protected function initialize()
     {
         @$this->connection->exec('SELECT ID FROM Known_Hosts LIMIT 1');

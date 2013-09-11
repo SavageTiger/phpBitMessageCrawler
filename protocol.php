@@ -3,6 +3,7 @@
 class Protocol
 {
     protected $accepted = false;
+    protected $readyForSending = false;
 
     protected $logger = null;
     protected $helper = null;
@@ -95,7 +96,6 @@ class Protocol
 
         switch ($type) {
             case 'verack':
-                $this->accepted = true;
                 $this->logger->log('My version is accepted');
                 break;
 
@@ -114,20 +114,26 @@ class Protocol
             case 'version':
                 $this->checkRemoteVersion($payload, $socket);
                 break;
+
+            default:
+                $this->invBag->resetHash();
+                break;
         }
     }
 
     public function sendPackage($socket)
     {
-        $hash = $this->invBag->getRandomInventory($socket['host']);
-        $data = $this->buildPackage(pack('C', 1) . $hash, 'getdata');
+        if ($this->invBag->getHash() === false) {
+            $hash = $this->invBag->getRandomInventory($socket['host']);
+            $data = $this->buildPackage(pack('C', 1) . $hash, 'getdata');
 
-        socket_send($socket['socket'], $data, strlen($data), 0);
+            socket_send($socket['socket'], $data, strlen($data), 0);
+        }
     }
 
     public function isAccepted()
     {
-        return $this->accepted;
+        return ($this->accepted === true && $this->readyForSending === true);
     }
 
     protected function checkRemoteVersion($payload, $socket)
@@ -151,6 +157,8 @@ class Protocol
             $data = $this->buildPackage('', 'verack');
             socket_send($socket['socket'], $data, strlen($data), 0);
 
+            $this->accepted = true;
+
             return true;
         }
 
@@ -159,8 +167,38 @@ class Protocol
 
     protected function processKey($payload)
     {
-        if ($this->helper->checkPOW($payload)) {
-            // ...
+        if ($this->helper->checkPOW($payload) && strlen($payload) > 146 && strlen($payload) < 600) {
+            $timestamp = substr($payload, 12, 4);
+
+            if ($timestamp == 0) {
+                $timestamp = substr($payload, 8, 4);
+            } else {
+                $timestamp = substr($payload, 8, 8);
+            }
+
+            $timestamp = $this->helper->unpack_double($timestamp, false);
+
+            $payload = substr($payload, 16);
+            $addressVersion = $this->helper->decodeVarInt($payload);
+
+            $payload = substr($payload, $addressVersion['len']);
+            $streamNumber = $this->helper->decodeVarInt($payload);
+
+            if ($streamNumber['int'] === 1) {
+                $payload = substr($payload, $streamNumber['len']);
+                $behavior = substr($payload, 0, 4); // XXX
+
+                $signingKey = substr($payload, 4, 64);
+                $encryptionKey = substr($payload, 68, 64);
+
+                if ($this->invBag->addKey($signingKey, $encryptionKey, $timestamp)) {
+                    $this->invBag->resetHash();
+                }
+            } else {
+                $this->logger->log('Public key is not in my stream');
+            }
+        } else {
+            $this->logger->log('Public key failed proof of work or size check');
         }
     }
 
@@ -227,8 +265,12 @@ class Protocol
                 $new = $this->invBag->addRange($invHash, $socket['host']);
 
                 if ($new > 0) {
-                    $this->logger->log('Added ' . count($invHash) . ' inventory items');
+                    $this->logger->log('Added ' . $new . ' inventory items');
                 }
+            }
+
+            if ($this->readyForSending === false) {
+                $this->readyForSending = true;
             }
 
             return true;
