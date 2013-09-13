@@ -32,8 +32,17 @@ if ($socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP)) {
     }
 }
 
-function __autoload($class) {
-    $class = str_replace('..', '', strtolower($class)) . '.php';
+function __autoload($class)
+{
+    $pathList = array(
+        './',
+    );
 
-    require($class);
+    foreach ($pathList as $path) {
+        $classPath = $path . str_replace('..', '', strtolower($class)) . '.php';
+
+        if (file_exists($classPath)) {
+            require($classPath);
+        }
+    }
 }

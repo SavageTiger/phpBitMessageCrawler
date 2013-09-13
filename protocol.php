@@ -167,7 +167,18 @@ class Protocol
 
     protected function processKey($payload)
     {
-        if ($this->helper->checkPOW($payload) && strlen($payload) > 146 && strlen($payload) < 600) {
+        if ($this->helper->checkPOW($payload) && strlen($payload) > 145 && strlen($payload) < 600) {
+            // Make a inmemory copy of the key for ecdsa verification (without the nonce)
+            $binary = substr($payload, 8);
+
+            // Detect key version
+            if (strlen($payload) === 146) {
+                $version = 2;
+            } else {
+                $version = 3;
+            }
+
+            $nonce = substr($payload, 0, 8);
             $timestamp = substr($payload, 12, 4);
 
             if ($timestamp == 0) {
@@ -180,18 +191,48 @@ class Protocol
 
             $payload = substr($payload, 16);
             $addressVersion = $this->helper->decodeVarInt($payload);
+            $keySize = (8 + $addressVersion['len']);
 
             $payload = substr($payload, $addressVersion['len']);
             $streamNumber = $this->helper->decodeVarInt($payload);
+            $keySize += $streamNumber['len'];
 
             if ($streamNumber['int'] === 1) {
                 $payload = substr($payload, $streamNumber['len']);
-                $behavior = substr($payload, 0, 4); // XXX
+                $behavior = substr($payload, 0, 4);
+                $keySize += 4;
 
                 $signingKey = substr($payload, 4, 64);
                 $encryptionKey = substr($payload, 68, 64);
+                $keySize += 128;
 
-                if ($this->invBag->addKey($signingKey, $encryptionKey, $timestamp)) {
+                $key = array(
+                    'nonce' => $nonce,
+                    'signingKey' => $signingKey,
+                    'encryptionKey' => $encryptionKey,
+                    'behavior' => $behavior,
+                    'timestamp' => $timestamp
+                );
+
+                if ($version == 3) {
+                    $payload = substr($payload, 128);
+                    $key['trials'] = $this->helper->decodeVarInt($payload);
+                    $keySize += $key['trials']['len'];
+
+                    $payload = substr($payload, $key['trials']['len']);
+                    $key['extraBytes'] = $this->helper->decodeVarInt($payload);
+                    $keySize += $key['extraBytes']['len'];
+
+                    $payload = substr($payload, $key['extraBytes']['len']);
+                    $ecdsaLength = $this->helper->decodeVarInt($payload);
+                    $payload = substr($payload, $ecdsaLength['len']);
+                    $key['ecdsaSignature'] = substr($payload, 0, $ecdsaLength['int']);
+
+                    // Cut-off the signature of the binary copy
+                    $binary = substr($binary, 0, $keySize);
+                }
+
+                if ($this->invBag->addKey($key, $binary)) {
                     $this->invBag->resetHash();
                 }
             } else {

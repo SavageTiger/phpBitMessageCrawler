@@ -54,10 +54,12 @@ class InvBag
         return $added;
     }
 
-    public function addKey($signingKey, $encryptionKey, $timestamp)
+    public function addKey($key, $binary)
     {
-        $this->sqlite->addKey($this->hash, $signingKey . $encryptionKey, $timestamp);
-        $this->sqlite->markInventory($this->hash);
+        // ECDSA library : https://github.com/mdanter/phpecc
+        //die(print_R($key));
+        //$this->sqlite->addKey($this->hash, $signingKey . $encryptionKey, $timestamp);
+        //$this->sqlite->markInventory($this->hash);
 
         return true;
     }
