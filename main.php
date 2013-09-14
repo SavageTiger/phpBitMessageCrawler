@@ -36,6 +36,9 @@ function __autoload($class)
 {
     $pathList = array(
         './',
+        './phpecc/classes/',
+        './phpecc/classes/interface/',
+        './phpecc/classes/util/',
     );
 
     foreach ($pathList as $path) {
@@ -43,6 +46,16 @@ function __autoload($class)
 
         if (file_exists($classPath)) {
             require($classPath);
+
+            return;
+        }
+
+        $classPath = $path . str_replace('..', '', $class) . '.php';
+
+        if (file_exists($classPath)) {
+            require($classPath);
+
+            return;
         }
     }
 }

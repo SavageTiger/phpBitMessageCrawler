@@ -189,7 +189,7 @@ class Protocol
 
             $timestamp = $this->helper->unpack_double($timestamp, false);
 
-            $payload = substr($payload, 16);
+            $payload = substr($payload, 12);
             $addressVersion = $this->helper->decodeVarInt($payload);
             $keySize = (8 + $addressVersion['len']);
 
@@ -208,9 +208,9 @@ class Protocol
 
                 $key = array(
                     'nonce' => $nonce,
-                    'signingKey' => $signingKey,
-                    'encryptionKey' => $encryptionKey,
-                    'behavior' => $behavior,
+                    'signingKey' => hex2bin('04') . $signingKey,
+                    'encryptionKey' => hex2bin('04') . $encryptionKey,
+                    'behavior' => bin2hex($behavior),
                     'timestamp' => $timestamp
                 );
 
