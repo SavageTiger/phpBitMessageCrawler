@@ -215,7 +215,7 @@ class Protocol
                 );
 
                 if ($version == 3) {
-                    $payload = substr($payload, 128);
+                    $payload = substr($payload, 132);
                     $key['trials'] = $this->helper->decodeVarInt($payload);
                     $keySize += $key['trials']['len'];
 
@@ -229,7 +229,7 @@ class Protocol
                     $key['ecdsaSignature'] = substr($payload, 0, $ecdsaLength['int']);
 
                     // Cut-off the signature of the binary copy
-                    $binary = substr($binary, 0, $keySize);
+                    $binary = substr($binary, 0, $keySize - 4);
                 }
 
                 if ($this->invBag->addKey($key, $binary)) {

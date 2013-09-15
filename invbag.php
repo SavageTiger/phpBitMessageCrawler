@@ -57,7 +57,7 @@ class InvBag
     public function addKey($key, $binary)
     {
         $ecc = new Ecc();
-        
+
         $ecc->ECDSA($binary, $key['signingKey'], $key['ecdsaSignature']);
         // ECDSA library : https://github.com/mdanter/phpecc
         //die(print_R($key));
