@@ -38,10 +38,16 @@ class Ecc
 
         $pubKey = $this->loadPublicKey($key);
 
-        if ($pubKey->verifies(PrivateKey::digest_integer($binary), $signature) == false) {
-            die ('epic fail...');
-        }
+        return $pubKey->verifies($this->digest_integer($binary), $signature);
     }
+
+    private function digest_integer($message)
+    {
+        // Copy't from the phpecc library, not sure why, there implementation might be broken
+        // That was a nice 5 hours of searching :P
+        return PrivateKey::string_to_int(hash('sha1', $message, true));
+    }
+
 
     protected function loadPublicKey($key)
     {

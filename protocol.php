@@ -232,9 +232,11 @@ class Protocol
                     $binary = substr($binary, 0, $keySize - 4);
                 }
 
-                if ($this->invBag->addKey($key, $binary)) {
-                    $this->invBag->resetHash();
+                if ($this->invBag->addKey($key, $binary) === false) {
+                    $this->logger->log('Public key signature checking failed, ignoring.');
                 }
+
+                $this->invBag->resetHash();
             } else {
                 $this->logger->log('Public key is not in my stream');
             }

@@ -58,7 +58,9 @@ class InvBag
     {
         $ecc = new Ecc();
 
-        $ecc->ECDSA($binary, $key['signingKey'], $key['ecdsaSignature']);
+        if ($ecc->ECDSA($binary, $key['signingKey'], $key['ecdsaSignature']) === false) {
+            return false;
+        }
         // ECDSA library : https://github.com/mdanter/phpecc
         //die(print_R($key));
         //$this->sqlite->addKey($this->hash, $signingKey . $encryptionKey, $timestamp);
