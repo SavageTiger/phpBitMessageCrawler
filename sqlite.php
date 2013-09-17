@@ -68,13 +68,13 @@ class SQLite
         return $result;
     }
 
-    public function addKey($hash, $key, $timestamp)
+    public function addBinary($type, $hash, $binary, $timestamp)
     {
         $query = 'SELECT ID FROM Inventory WHERE Hash = X\'' . bin2hex($hash) . '\' LIMIT 1';
         $result = $this->connection->querySingle($query);
 
-        $query  = 'INSERT INTO KeyStore (Inventory, Binary, Timestamp) VALUES ';
-        $query .= '(\'' . $result . '\', X\'' . bin2hex($key) . '\', ' . $timestamp . ')';
+        $query  = 'INSERT INTO ' . $type . 'Store (Inventory, Binary, Timestamp) VALUES ';
+        $query .= '(\'' . $result . '\', X\'' . bin2hex($binary) . '\', ' . $timestamp . ')';
 
         return $this->connection->exec($query);
     }

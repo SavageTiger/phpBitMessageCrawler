@@ -54,17 +54,27 @@ class InvBag
         return $added;
     }
 
-    public function addKey($key, $binary)
+    public function addMessage($binary, $timestamp)
+    {
+        $this->sqlite->addBinary('Message', $this->hash, $binary, $timestamp);
+        $this->sqlite->markInventory($this->hash);
+
+        // TODO - Try to decrypt the message here...if we have privkeys :P
+    }
+
+    public function addKey($key, $binary, $keySize)
     {
         $ecc = new Ecc();
 
-        if ($ecc->ECDSA($binary, $key['signingKey'], $key['ecdsaSignature']) === false) {
+        $body = substr($binary, 8);
+        $body = substr($body, 0, $keySize);
+
+        if ($ecc->ECDSA($body, $key['signingKey'], $key['ecdsaSignature']) === false) {
             return false;
         }
-        // ECDSA library : https://github.com/mdanter/phpecc
-        //die(print_R($key));
-        //$this->sqlite->addKey($this->hash, $signingKey . $encryptionKey, $timestamp);
-        //$this->sqlite->markInventory($this->hash);
+
+        $this->sqlite->addBinary('Key', $this->hash, $binary, $key['timestamp']);
+        $this->sqlite->markInventory($this->hash);
 
         return true;
     }

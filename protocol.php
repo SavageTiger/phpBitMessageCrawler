@@ -83,6 +83,7 @@ class Protocol
                     }
 
                 $downloadSize = $size - strlen($data);
+
             }
         }
 
@@ -110,6 +111,9 @@ class Protocol
             case 'pubkey':
                 $this->processKey($payload);
                 break;
+
+            case 'msg':
+                $this->processMessage($payload);
 
             case 'version':
                 $this->checkRemoteVersion($payload, $socket);
@@ -168,8 +172,7 @@ class Protocol
     protected function processKey($payload)
     {
         if ($this->helper->checkPOW($payload) && strlen($payload) > 145 && strlen($payload) < 600) {
-            // Make a inmemory copy of the key for ecdsa verification (without the nonce)
-            $binary = substr($payload, 8);
+            $binary = $payload;
 
             // Detect key version
             if (strlen($payload) === 146) {
@@ -179,19 +182,13 @@ class Protocol
             }
 
             $nonce = substr($payload, 0, 8);
-            $timestamp = substr($payload, 12, 4);
 
-            if ($timestamp == 0) {
-                $timestamp = substr($payload, 8, 4);
-            } else {
-                $timestamp = substr($payload, 8, 8);
-            }
+            $payload = substr($payload, 8);
+            $timestamp = $this->helper->convertTime($payload);
 
-            $timestamp = $this->helper->unpack_double($timestamp, false);
-
-            $payload = substr($payload, 12);
+            $payload = substr($payload, 4);
             $addressVersion = $this->helper->decodeVarInt($payload);
-            $keySize = (8 + $addressVersion['len']);
+            $keySize = (4 + $addressVersion['len']);
 
             $payload = substr($payload, $addressVersion['len']);
             $streamNumber = $this->helper->decodeVarInt($payload);
@@ -200,6 +197,7 @@ class Protocol
             if ($streamNumber['int'] === 1) {
                 $payload = substr($payload, $streamNumber['len']);
                 $behavior = substr($payload, 0, 4);
+
                 $keySize += 4;
 
                 $signingKey = substr($payload, 4, 64);
@@ -227,22 +225,43 @@ class Protocol
                     $ecdsaLength = $this->helper->decodeVarInt($payload);
                     $payload = substr($payload, $ecdsaLength['len']);
                     $key['ecdsaSignature'] = substr($payload, 0, $ecdsaLength['int']);
-
-                    // Cut-off the signature of the binary copy
-                    $binary = substr($binary, 0, $keySize - 4);
                 }
 
-                if ($this->invBag->addKey($key, $binary) === false) {
+                if ($this->invBag->addKey($key, $binary, $keySize) === false) {
                     $this->logger->log('Public key signature checking failed, ignoring.');
                 }
 
-                $this->invBag->resetHash();
             } else {
                 $this->logger->log('Public key is not in my stream');
             }
         } else {
             $this->logger->log('Public key failed proof of work or size check');
         }
+
+        $this->invBag->resetHash();
+    }
+
+    protected function processMessage($payload)
+    {
+        if ($this->helper->checkPOW($payload)) {
+            $binary = $payload;
+
+            $payload = substr($payload, 8);
+            $timestamp = $this->helper->convertTime($payload);
+
+            $payload = substr($payload, 8);
+            $streamNumber = $this->helper->decodeVarInt($payload);
+
+            if ($streamNumber['int'] === 1) {
+                $this->invBag->addMessage($binary, $timestamp);
+            } else {
+                $this->logger->log('Message is not in my stream');
+            }
+        } else {
+            $this->logger->log('Message failed proof of work check');
+        }
+
+        $this->invBag->resetHash();
     }
 
     protected function processAddr($payload)
