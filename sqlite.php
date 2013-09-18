@@ -2,6 +2,7 @@
 
 class SQLite
 {
+    protected $cache = array();
     protected $connection = null;
 
     function __construct()
@@ -62,8 +63,14 @@ class SQLite
 
     public function getRandomInventory($host)
     {
-        $query = 'SELECT Hash FROM Inventory WHERE Host = ' . ip2long($host) . ' AND InStore = 0 ORDER BY RANDOM() LIMIT 1';
-        $result = $this->connection->querySingle($query);
+        $inCache = true;
+        
+        while($inCache) {
+            $query = 'SELECT Hash FROM Inventory WHERE Host = ' . ip2long($host) . ' AND InStore = 0 ORDER BY RANDOM() LIMIT 1';
+            $result = $this->connection->querySingle($query);
+            
+            $inCache = (isset($this->cache[$result]) === true);
+        }
 
         return $result;
     }
@@ -76,12 +83,35 @@ class SQLite
         $query  = 'INSERT INTO ' . $type . 'Store (Inventory, Binary, Timestamp) VALUES ';
         $query .= '(\'' . $result . '\', X\'' . bin2hex($binary) . '\', ' . $timestamp . ')';
 
-        return $this->connection->exec($query);
+        if (isset($this->cache[$hash]) === false) {
+            $this->cache[$hash] = array();
+        }
+
+        $this->cache[$hash][] = $query;
     }
 
     public function markInventory($hash)
     {
-        return $this->connection->exec('UPDATE Inventory SET InStore = 1 WHERE Hash = X\'' . bin2hex($hash) . '\'');
+        if (isset($this->cache[$hash]) === false) {
+            $this->cache[$hash] = array();
+        }
+        
+        $this->cache[$hash][] = 'UPDATE Inventory SET InStore = 1 WHERE Hash = X\'' . bin2hex($hash) . '\'';
+    }
+
+    public function executeCache()
+    {
+        $this->connection->exec('BEGIN TRANSACTION');       
+        foreach ($this->cache as $cache) {
+            foreach($cache as $query) {
+                $this->connection->exec($query);
+            }
+        }        
+        $this->connection->exec('END TRANSACTION');
+        
+        $this->cache = array();
+        
+        return;
     }
 
     protected function initialize()

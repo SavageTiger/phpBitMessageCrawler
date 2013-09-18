@@ -11,6 +11,7 @@ if ($socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP)) {
     $socket = array('host' => $host, 'port' => $port, 'socket' => $socket);
 
     if (socket_connect($socket['socket'], $host, $port)) {
+        $operations = 0;
         $data = $protocol->generateVersionPackage($host, $port, 8444);
 
         socket_send($socket['socket'], $data, strlen($data), 0);
@@ -19,6 +20,14 @@ if ($socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP)) {
             if (socket_recv($socket['socket'], $buffer, 32, 0)) {
                 if ($protocol->recievePackage($buffer, $socket) === false) {
                     die('Error' . "\r\n");
+                }
+                
+                $operations++;
+                
+                if ($operations > 50) {
+                    $sqlite->executeCache();
+                    
+                    $operations = 0;
                 }
             }
 
