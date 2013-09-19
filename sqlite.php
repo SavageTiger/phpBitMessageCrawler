@@ -17,10 +17,20 @@ class SQLite
         }
     }
 
-    public function hasInventory($inventory)
+    public function hasInventory($inventory, $host)
     {
-        if ($this->connection->querySingle('SELECT ID FROM Inventory WHERE Hash = X\'' . bin2hex($inventory) . '\' LIMIT 1') === NULL) {
+        $hostInStore = $this->connection->querySingle('SELECT Host FROM Inventory WHERE Hash = X\'' . bin2hex($inventory) . '\' LIMIT 1');
+
+        if ($hostInStore == NULL) {
             return false;
+        }
+
+        if (ip2long($host) !== (int)$hostInStore) {
+            if (!isset($this->cache[$inventory])) {
+                $this->cache[$inventory] = array();
+            }
+
+            $this->cache[$inventory][] = 'UPDATE Inventory SET Host = \'' . ip2long($host) . '\' WHERE Hash = X\'' . bin2hex($inventory) . '\' LIMIT 1';
         }
 
         return true;
@@ -58,17 +68,28 @@ class SQLite
 
         $query = substr($query, 0, -1);
 
-        return $this->connection->exec($query);
+        if (!isset($this->cache['AddInv'])) {
+            $this->cache['AddInv'] = array();
+        }
+
+        $this->cache['AddInv'][] = $query;
+
+        return;
     }
 
     public function getRandomInventory($host)
     {
         $inCache = true;
-        
+
+        if (rand(0, 10) === 5) {
+            echo ('DELETE FROM Inventory WHERE Timestamp < ' . (time() - (60 * 60 * 48)));
+            $this->connection->exec('DELETE FROM Inventory WHERE Timestamp < ' . (time() - (60 * 60 * 48)));
+        }
+
         while($inCache) {
             $query = 'SELECT Hash FROM Inventory WHERE Host = ' . ip2long($host) . ' AND InStore = 0 ORDER BY RANDOM() LIMIT 1';
             $result = $this->connection->querySingle($query);
-            
+
             $inCache = (isset($this->cache[$result]) === true);
         }
 
@@ -95,22 +116,22 @@ class SQLite
         if (isset($this->cache[$hash]) === false) {
             $this->cache[$hash] = array();
         }
-        
+
         $this->cache[$hash][] = 'UPDATE Inventory SET InStore = 1 WHERE Hash = X\'' . bin2hex($hash) . '\'';
     }
 
     public function executeCache()
     {
-        $this->connection->exec('BEGIN TRANSACTION');       
+        $this->connection->exec('BEGIN TRANSACTION');
         foreach ($this->cache as $cache) {
             foreach($cache as $query) {
                 $this->connection->exec($query);
             }
-        }        
+        }
         $this->connection->exec('END TRANSACTION');
-        
+
         $this->cache = array();
-        
+
         return;
     }
 

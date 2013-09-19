@@ -9,7 +9,7 @@ $protocol = new Protocol($sqlite);
 
 if ($socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP)) {
 
-    socket_set_option($socket, SOL_SOCKET, SO_RCVTIMEO, array('sec'=> 10, 'usec' => 0));
+//    socket_set_option($socket, SOL_SOCKET, SO_RCVTIMEO, array('sec'=> 10, 'usec' => 0));
 
     $socket = array('host' => $host, 'port' => $port, 'socket' => $socket);
 

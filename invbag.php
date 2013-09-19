@@ -33,7 +33,7 @@ class InvBag
         $buffer = array();
 
         foreach ($invCollection as $inventory) {
-            if ($this->sqlite->hasInventory($inventory) === false) {
+            if ($this->sqlite->hasInventory($inventory, $host) === false) {
                 $buffer[] = $inventory;
             }
 
@@ -50,6 +50,8 @@ class InvBag
 
             $added += count($buffer);
         }
+
+        $this->sqlite->executeCache();
 
         return $added;
     }
