@@ -21,6 +21,12 @@ CREATE TABLE "MessageStore" (
     "Inventory" INTEGER NOT NULL,
     "Timestamp" INTEGER NOT NULL
 );
+CREATE TABLE "BroadcastStore" (
+    "ID" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    "Binary" BLOB NOT NULL,
+    "Inventory" INTEGER NOT NULL,
+    "Timestamp" INTEGER NOT NULL
+);
 CREATE TABLE "KeyStore" (
     "ID" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     "Binary" BLOB NOT NULL,

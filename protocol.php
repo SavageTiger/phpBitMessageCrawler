@@ -113,6 +113,11 @@ class Protocol
 
             case 'msg':
                 $this->processMessage($payload);
+                break;
+
+            case 'broadcast':
+                $this->processBroadcast($payload);
+                break;
 
             case 'version':
                 $this->checkRemoteVersion($payload, $socket);
@@ -252,6 +257,36 @@ class Protocol
             }
         } else {
             $this->logger->log('Message failed proof of work check');
+        }
+
+        $this->invBag->resetHash();
+    }
+
+    protected function processBroadcast($payload)
+    {
+        if ($this->helper->checkPOW($payload)) {
+            $binary = $payload;
+
+            $payload = substr($payload, 8);
+            $timestamp = $this->helper->convertTime($payload);
+
+            $payload = substr($payload, $timestamp[1] ? 8 : 4);
+            $broadcastVersion = $this->helper->decodeVarInt($payload);
+
+            $payload = substr($payload, $broadcastVersion['len']);
+            $streamNumber = $this->helper->decodeVarInt($payload);
+
+            if ($streamNumber['int'] === 1) {
+                if ($broadcastVersion['int'] === 2) {
+                    $this->invBag->addBroadcast($binary, $timestamp[0]);
+                } else {
+                    $this->logger->log('Broadcast version is not supported');
+                }
+            } else {
+                $this->logger->log('Broadcast is not in my stream');
+            }
+        } else {
+            $this->logger->log('Broadcast failed proof of work');
         }
 
         $this->invBag->resetHash();

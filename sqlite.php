@@ -82,7 +82,6 @@ class SQLite
         $inCache = true;
 
         if (rand(0, 10) === 5) {
-            echo ('DELETE FROM Inventory WHERE Timestamp < ' . (time() - (60 * 60 * 48)));
             $this->connection->exec('DELETE FROM Inventory WHERE Timestamp < ' . (time() - (60 * 60 * 48)));
         }
 

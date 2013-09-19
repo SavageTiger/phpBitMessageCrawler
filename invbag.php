@@ -64,6 +64,14 @@ class InvBag
         // TODO - Try to decrypt the message here...if we have privkeys :P
     }
 
+    public function addBroadcast($binary, $timestamp)
+    {
+        // TODO: https://bitmessage.org/wiki/Protocol_specification#Encrypted_payload
+
+        $this->sqlite->addBinary('Broadcast', $this->hash, $binary, $timestamp);
+        $this->sqlite->markInventory($this->hash);
+    }
+
     public function addKey($key, $binary, $keySize)
     {
         $ecc = new Ecc();
