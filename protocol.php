@@ -72,22 +72,21 @@ class Protocol
 
         // Download the rest of payload otherwise the hash checksum will be incorrect and the
         // payload will be to short to process.
-        if ($size > 32) {
-            $downloadSize = $size - strlen($data);
+        if ($size > 0) {
+            $downloadSize = $size;
 
             while ($downloadSize > 0) {
-                    if (socket_recv($socket['socket'], $buffer, 1024, 0)) {
+                    if (socket_recv($socket['socket'], $buffer, 512, 0)) {
                         $data .= $buffer;
                     } else {
                         return false;
                     }
 
-                $downloadSize = $size - strlen($data);
-
+                $downloadSize = (24 + ($size - strlen($data)));
             }
         }
 
-        $payload = substr($data, 24, $size);
+        $payload = substr($data, 24);
 
         if (substr(hash('sha512', $payload), 0, 4) !== $hash) {
             $this->logger->log('Invalid hash');

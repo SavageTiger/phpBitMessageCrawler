@@ -6,7 +6,10 @@ $port = 8444;
 $sqlite = new SQLite();
 $protocol = new Protocol($sqlite);
 
+
 if ($socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP)) {
+
+    socket_set_option($socket, SOL_SOCKET, SO_RCVTIMEO, array('sec'=> 10, 'usec' => 0));
 
     $socket = array('host' => $host, 'port' => $port, 'socket' => $socket);
 
@@ -17,16 +20,16 @@ if ($socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP)) {
         socket_send($socket['socket'], $data, strlen($data), 0);
 
         while (true) {
-            if (socket_recv($socket['socket'], $buffer, 32, 0)) {
+            if (socket_recv($socket['socket'], $buffer, 24, 0)) {
                 if ($protocol->recievePackage($buffer, $socket) === false) {
                     die('Error' . "\r\n");
                 }
-                
+
                 $operations++;
-                
+
                 if ($operations > 50) {
                     $sqlite->executeCache();
-                    
+
                     $operations = 0;
                 }
             }
