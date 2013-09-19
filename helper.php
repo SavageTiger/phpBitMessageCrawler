@@ -33,15 +33,19 @@ class Helper
 
     public function convertTime($payload)
     {
+        $fortySixBits = false;
+
         $timestamp = substr($payload, 0, 4);
         $timestamp = $this->unpack_double($timestamp, false);
 
         if ($timestamp == 0) {
+            $fortySixBits = true;
+
             $timestamp = substr($payload, 0, 8);
             $timestamp = $this->unpack_double($timestamp, false);
         }
 
-        return $timestamp;
+        return array($timestamp, $fortySixBits);
     }
 
     public function checkPOW($payload)

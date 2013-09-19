@@ -13,7 +13,7 @@ class InvBag
     public function getRandomInventory($host)
     {
         $this->hash = $this->hash = $this->sqlite->getRandomInventory($host);
-
+//$this->hash = hex2bin('764a972ddf77a1c4d7cb0e134442baca4e671d6fdcc05f964e0d73a8080c8398');
         return $this->hash;
     }
 

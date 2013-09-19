@@ -185,7 +185,7 @@ class Protocol
             $payload = substr($payload, 8);
             $timestamp = $this->helper->convertTime($payload);
 
-            $payload = substr($payload, 4);
+            $payload = substr($payload, $timestamp[1] ? 8 : 4);
             $addressVersion = $this->helper->decodeVarInt($payload);
             $keySize = (4 + $addressVersion['len']);
 
@@ -208,7 +208,7 @@ class Protocol
                     'signingKey' => hex2bin('04') . $signingKey,
                     'encryptionKey' => hex2bin('04') . $encryptionKey,
                     'behavior' => bin2hex($behavior),
-                    'timestamp' => $timestamp
+                    'timestamp' => $timestamp[0]
                 );
 
                 if ($version == 3) {
@@ -248,11 +248,11 @@ class Protocol
             $payload = substr($payload, 8);
             $timestamp = $this->helper->convertTime($payload);
 
-            $payload = substr($payload, 8);
+            $payload = substr($payload, $timestamp[1] ? 8 : 4);
             $streamNumber = $this->helper->decodeVarInt($payload);
 
             if ($streamNumber['int'] === 1) {
-                $this->invBag->addMessage($binary, $timestamp);
+                $this->invBag->addMessage($binary, $timestamp[0]);
             } else {
                 $this->logger->log('Message is not in my stream');
             }
