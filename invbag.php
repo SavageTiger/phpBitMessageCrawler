@@ -13,7 +13,7 @@ class InvBag
     public function getRandomInventory($host)
     {
         $this->hash = $this->hash = $this->sqlite->getRandomInventory($host);
-//$this->hash = hex2bin('764a972ddf77a1c4d7cb0e134442baca4e671d6fdcc05f964e0d73a8080c8398');
+
         return $this->hash;
     }
 
@@ -66,10 +66,17 @@ class InvBag
     {
         $ecc = new Ecc();
 
-        $body = substr($binary, 8);
-        $body = substr($body, 0, $keySize);
+        // Note: As long as version 2 pubkeys are supported key signing is basicly useless
+        if ($key['version'] === 3) {
+            $body = substr($binary, 8);
+            $body = substr($body, 0, $keySize);
 
-        if ($ecc->ECDSA($body, $key['signingKey'], $key['ecdsaSignature']) === false) {
+            if ($ecc->ECDSA($body, $key['signingKey'], $key['ecdsaSignature']) === false) {
+                return false;
+            }
+        }
+
+        if ($key['version'] > 3) {
             return false;
         }
 

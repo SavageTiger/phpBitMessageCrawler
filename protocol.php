@@ -173,13 +173,6 @@ class Protocol
         if ($this->helper->checkPOW($payload) && strlen($payload) > 145 && strlen($payload) < 600) {
             $binary = $payload;
 
-            // Detect key version
-            if (strlen($payload) === 146) {
-                $version = 2;
-            } else {
-                $version = 3;
-            }
-
             $nonce = substr($payload, 0, 8);
 
             $payload = substr($payload, 8);
@@ -187,7 +180,7 @@ class Protocol
 
             $payload = substr($payload, $timestamp[1] ? 8 : 4);
             $addressVersion = $this->helper->decodeVarInt($payload);
-            $keySize = (4 + $addressVersion['len']);
+            $keySize = (($timestamp[1] ? 8 : 4) + $addressVersion['len']);
 
             $payload = substr($payload, $addressVersion['len']);
             $streamNumber = $this->helper->decodeVarInt($payload);
@@ -205,13 +198,14 @@ class Protocol
 
                 $key = array(
                     'nonce' => $nonce,
+                    'version' => $addressVersion['int'],
                     'signingKey' => hex2bin('04') . $signingKey,
                     'encryptionKey' => hex2bin('04') . $encryptionKey,
                     'behavior' => bin2hex($behavior),
                     'timestamp' => $timestamp[0]
                 );
 
-                if ($version == 3) {
+                if ($addressVersion['int'] == 3) {
                     $payload = substr($payload, 132);
                     $key['trials'] = $this->helper->decodeVarInt($payload);
                     $keySize += $key['trials']['len'];
