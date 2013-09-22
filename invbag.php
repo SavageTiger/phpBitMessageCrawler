@@ -2,18 +2,20 @@
 
 class InvBag
 {
+    protected $ecc = null;
     protected $hash = false;
     protected $sqlite;
 
     function __construct($sqlite)
     {
+        $this->ecc = new Ecc();
         $this->sqlite = $sqlite;
     }
 
     public function getRandomInventory($host)
     {
         $this->hash = $this->hash = $this->sqlite->getRandomInventory($host);
-
+return hex2bin('cddfcd9ea2435b667f6bd25c01edcce26e72d639d071ff28626e640fc9316e82');
         return $this->hash;
     }
 
@@ -64,9 +66,9 @@ class InvBag
         // TODO - Try to decrypt the message here...if we have privkeys :P
     }
 
-    public function addBroadcast($binary, $timestamp)
+    public function addBroadcast($binary, $timestamp, $headerSize)
     {
-        // TODO: https://bitmessage.org/wiki/Protocol_specification#Encrypted_payload
+        $this->ecc->decrypt(substr($binary, $headerSize));
 
         $this->sqlite->addBinary('Broadcast', $this->hash, $binary, $timestamp);
         $this->sqlite->markInventory($this->hash);
@@ -74,14 +76,12 @@ class InvBag
 
     public function addKey($key, $binary, $keySize)
     {
-        $ecc = new Ecc();
-
         // Note: As long as version 2 pubkeys are supported key signing is basicly useless
         if ($key['version'] === 3) {
             $body = substr($binary, 8);
             $body = substr($body, 0, $keySize);
 
-            if ($ecc->ECDSA($body, $key['signingKey'], $key['ecdsaSignature']) === false) {
+            if ($this->ecc->ECDSA($body, $key['signingKey'], $key['ecdsaSignature']) === false) {
                 return false;
             }
         }

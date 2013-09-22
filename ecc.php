@@ -28,7 +28,7 @@ class Ecc
         );
     }
 
-    function ECDSA($binary, $key, $signature)
+    public function ECDSA($binary, $key, $signature)
     {
         $signature = $this->decodeSignature($signature);
         $signature = new Signature(
@@ -39,6 +39,32 @@ class Ecc
         $pubKey = $this->loadPublicKey($key);
 
         return $pubKey->verifies($this->digest_integer($binary), $signature);
+    }
+    
+    public function Decrypt($binary)
+    {
+        // https://bitmessage.org/wiki/Protocol_specification#Encrypted_payload    
+        $initVector = substr($binary, 0, 16);
+        
+        $binary = substr($binary, 16);
+        $pubKey = $this->decodePubkey($binary);
+
+        if ($pubKey['curveType'][1] === 714) {
+            $body = substr($binary, $pubKey['len']);
+            //$body = substr($body, 0, strlen($body) - 32);
+
+            $ecDh = new EcDH(
+                new Point(
+                    $this->secp256k1,
+                    gmp_Utils::gmp_hexdec('0x' . $pubKey['x']),
+                    gmp_Utils::gmp_hexdec('0x' . $pubKey['y'])              
+                )
+            );
+
+            die(var_dump($ecDh->decrypt($body, $initVector)));
+        }
+        
+        return false;
     }
 
     private function digest_integer($message)
@@ -104,6 +130,7 @@ class Ecc
         $y = substr($key, strlen($x) + 6, $pointLength[1]);
 
         return array(
+            'len' => (strlen($x) + 6 + $pointLength[1]),
             'curveType' => $curveType,
             'x' => bin2hex($x),
             'y' => bin2hex($y)

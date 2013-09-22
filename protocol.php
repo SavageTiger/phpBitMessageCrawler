@@ -269,16 +269,19 @@ class Protocol
 
             $payload = substr($payload, 8);
             $timestamp = $this->helper->convertTime($payload);
+            $offset = 8 + ($timestamp[1] ? 8 : 4);
 
             $payload = substr($payload, $timestamp[1] ? 8 : 4);
             $broadcastVersion = $this->helper->decodeVarInt($payload);
+            $offset += $broadcastVersion['len'];
 
             $payload = substr($payload, $broadcastVersion['len']);
             $streamNumber = $this->helper->decodeVarInt($payload);
+            $offset += $streamNumber['len'];
 
             if ($streamNumber['int'] === 1) {
                 if ($broadcastVersion['int'] === 2) {
-                    $this->invBag->addBroadcast($binary, $timestamp[0]);
+                    $this->invBag->addBroadcast($binary, $timestamp[0], $offset);
                 } else {
                     $this->logger->log('Broadcast version is not supported');
                 }
